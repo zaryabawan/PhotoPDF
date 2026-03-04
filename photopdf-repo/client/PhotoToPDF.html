@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Photo → PDF Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0c0c0c;color:#e5e5e5;font-family:'IBM Plex Mono',monospace;overflow:hidden}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#111}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#f97316}
+input[type=range]{accent-color:#f97316;width:100%}
+input[type=color]{border:none;background:none;cursor:pointer;width:100%;height:100%;padding:0}
+
+/* ── License Screen ── */
+#license-screen{position:fixed;inset:0;background:#0c0c0c;z-index:1000;display:flex;align-items:center;justify-content:center}
+.lic-box{width:440px;background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:36px;position:relative;overflow:hidden}
+.lic-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#f97316,#fb923c,#f97316)}
+.lic-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.lic-logo-icon{width:36px;height:36px;background:#f97316;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.lic-logo-title{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#e5e5e5;letter-spacing:3px}
+.lic-logo-sub{font-size:9px;color:#555;letter-spacing:1px}
+.lic-heading{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#e5e5e5;letter-spacing:2px;margin-bottom:6px}
+.lic-sub{font-size:11px;color:#666;line-height:1.7;margin-bottom:24px}
+.lic-label{font-size:10px;color:#666;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.lic-input{width:100%;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:4px;color:#e5e5e5;padding:11px 14px;font-family:'IBM Plex Mono',monospace;font-size:13px;outline:none;letter-spacing:1px;transition:border-color .2s;margin-bottom:8px}
+.lic-input:focus{border-color:#f97316}
+.lic-input.error{border-color:#ef4444}
+.lic-input.success{border-color:#22c55e}
+.lic-fp{font-size:9px;color:#444;margin-bottom:20px;background:#0f0f0f;border:1px solid #1a1a1a;border-radius:3px;padding:8px 10px;line-height:1.7;word-break:break-all}
+.lic-fp span{color:#666}
+.lic-btn{width:100%;padding:13px;background:#f97316;color:#000;border:none;border-radius:4px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.lic-btn:hover:not(:disabled){background:#fb923c}
+.lic-btn:disabled{background:#1e1e1e;color:#444;cursor:not-allowed}
+.lic-msg{font-size:11px;margin-top:10px;min-height:16px;text-align:center}
+.lic-msg.error{color:#ef4444}
+.lic-msg.success{color:#22c55e}
+.spinner{width:16px;height:16px;border:2px solid #44444455;border-top-color:#888;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lic-divider{height:1px;background:#1e1e1e;margin:20px 0}
+.lic-hint{font-size:10px;color:#444;text-align:center;line-height:1.7}
+.lic-hint code{color:#666;background:#0f0f0f;padding:1px 5px;border-radius:2px}
+
+/* ── Main App ── */
+#app{display:none;flex-direction:column;height:100vh}
+input[type=text]{width:100%;background:#1e1e1e;border:1px solid #2e2e2e;border-radius:3px;color:#e5e5e5;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;transition:border-color .2s}
+input[type=text]:focus{border-color:#f97316}
+#header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #1e1e1e;background:#0f0f0f;flex-shrink:0}
+#header-left{display:flex;align-items:center;gap:14px}
+.logo-box{width:34px;height:34px;background:#f97316;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#e5e5e5;letter-spacing:3px}
+.header-sub{font-size:9px;color:#555;letter-spacing:1px;margin-top:1px}
+#header-right{display:flex;gap:8px;align-items:center}
+.tag{display:inline-block;border-radius:2px;padding:2px 7px;font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:1px;text-transform:uppercase}
+.tag-orange{background:#f9731622;color:#f97316;border:1px solid #f9731655}
+.tag-green{background:#22c55e22;color:#22c55e;border:1px solid #22c55e55}
+.tag-gray{background:#88888822;color:#888;border:1px solid #88888855}
+.tag-purple{background:#a855f722;color:#a855f7;border:1px solid #a855f755}
+#main{display:flex;flex:1;overflow:hidden}
+#left-panel{width:42%;min-width:300px;max-width:480px;border-right:1px solid #1a1a1a;display:flex;flex-direction:column;overflow:hidden}
+#dropzone{margin:14px;border-radius:6px;border:2px dashed #2a2a2a;background:#111;padding:22px 16px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:9px;flex-shrink:0}
+#dropzone.over{border-color:#f97316;background:#f9731608}
+#dropzone.over .dz-title{color:#f97316}
+.dz-icon{font-size:28px}
+.dz-title{font-family:'Bebas Neue',sans-serif;font-size:15px;color:#555;letter-spacing:2px;transition:color .2s}
+.dz-sub{font-size:10px;color:#444}
+.dz-btns{display:flex;gap:8px;margin-top:4px}
+.dz-btn{background:#1e1e1e;border:1px solid #333;color:#aaa;padding:6px 14px;border-radius:3px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:11px;transition:all .15s}
+.dz-btn:hover{border-color:#f97316;color:#f97316}
+#sort-bar{padding:0 14px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.sort-label{font-size:10px;color:#555;letter-spacing:1px}
+#image-list{flex:1;overflow-y:auto;padding:0 14px 14px}
+.img-item{display:flex;align-items:center;gap:10px;background:#111;border:1px solid #1e1e1e;border-radius:4px;padding:7px 10px;margin-bottom:5px;transition:border-color .15s}
+.img-item:hover{border-color:#2e2e2e}
+.img-item.dragging{opacity:.4}
+.img-item.drag-over{border-color:#f97316}
+.img-thumb{width:44px;height:32px;border-radius:2px;overflow:hidden;background:#0c0c0c;flex-shrink:0}
+.img-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.img-info{flex:1;min-width:0}
+.img-name{font-size:11px;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.img-meta{font-size:9px;color:#444;margin-top:2px}
+.img-arrows{display:flex;flex-direction:column;gap:2px}
+.arrow-btn{background:none;border:none;font-size:10px;cursor:pointer;padding:1px 4px;line-height:1;transition:color .15s;color:#666}
+.arrow-btn:disabled{color:#333!important;cursor:default}
+.arrow-btn:not(:disabled):hover{color:#f97316}
+.remove-btn{background:none;border:none;font-size:16px;cursor:pointer;color:#444;padding:2px 4px;line-height:1;transition:color .15s}
+.remove-btn:hover{color:#ef4444}
+.empty-msg{text-align:center;padding:40px 20px;color:#333;font-size:11px}
+#right-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#settings-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;padding:18px 22px;align-content:start}
+.settings-card{background:#111;border:1px solid #1a1a1a;border-radius:6px;padding:15px}
+.section-title{display:flex;align-items:center;gap:10px;margin-bottom:13px}
+.section-bar{width:3px;height:15px;background:#f97316;border-radius:2px;flex-shrink:0}
+.section-name{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#e5e5e5;letter-spacing:2px}
+.row{margin-bottom:11px}
+.row:last-child{margin-bottom:0}
+.row-label{font-size:10px;color:#666;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.toggle-group{display:flex;gap:2px}
+.tg-btn{flex:1;padding:6px 8px;background:#1e1e1e;color:#888;border:1px solid #2e2e2e;border-radius:3px;cursor:pointer;font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:500;transition:all .15s;letter-spacing:.5px;text-align:center}
+.tg-btn.active{background:#f97316;color:#000;border-color:#f97316}
+.tg-btn.small{padding:5px 5px;font-size:10px}
+.slider-row{display:flex;align-items:center;gap:10px}
+.slider-val{color:#f97316;font-size:12px;min-width:30px;text-align:right;flex-shrink:0}
+.color-row{display:flex;align-items:center;gap:8px}
+.color-swatch{width:28px;height:28px;border-radius:3px;overflow:hidden;border:1px solid #333;cursor:pointer;flex-shrink:0;position:relative}
+.color-swatch input{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px)}
+.color-label{font-size:11px;color:#888}
+.hint{font-size:10px;color:#444;line-height:1.6;margin-top:4px}
+#gen-bar{padding:14px 22px;border-top:1px solid #1a1a1a;background:#0f0f0f;display:flex;align-items:center;gap:16px;flex-shrink:0}
+#gen-status{flex:1;font-size:11px;color:#888}
+#gen-status .hi{color:#f97316}
+#gen-status .lo{color:#666}
+#gen-btn{background:#f97316;color:#000;border:none;border-radius:4px;padding:12px 26px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;transition:background .2s;flex-shrink:0}
+#gen-btn:hover:not(:disabled){background:#fb923c}
+#gen-btn:disabled{background:#1e1e1e;color:#444;cursor:not-allowed}
+.progress-top{display:flex;justify-content:space-between;margin-bottom:6px}
+.progress-label{font-size:10px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80%}
+.progress-pct{font-size:10px;color:#f97316}
+.progress-bar{height:4px;background:#1e1e1e;border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:#f97316;border-radius:2px;transition:width .2s}
+</style>
+</head>
+<body>
+
+<!-- LICENSE SCREEN -->
+<div id="license-screen">
+  <div class="lic-box">
+    <div class="lic-logo">
+      <div class="lic-logo-icon">📄</div>
+      <div>
+        <div class="lic-logo-title">PHOTO → PDF</div>
+        <div class="lic-logo-sub">LICENSED SOFTWARE — v1.0.0</div>
+      </div>
+    </div>
+    <div class="lic-heading">ACTIVATE YOUR COPY</div>
+    <div class="lic-sub">Enter your license key or device ID to unlock this software. Each key activates on one machine only and is permanently bound to your hardware.</div>
+    <div class="lic-label">License Key or Device ID</div>
+    <input class="lic-input" id="lic-input" type="text"
+      placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
+      autocomplete="off" spellcheck="false" />
+    <div class="lic-fp">
+      <span>Hardware fingerprint:</span> <span id="fp-display">Computing…</span>
+    </div>
+    <button class="lic-btn" id="lic-btn" disabled>
+      <span id="lic-btn-text">ACTIVATE</span>
+      <div class="spinner" id="lic-spinner" style="display:none"></div>
+    </button>
+    <div class="lic-msg" id="lic-msg"></div>
+    <div class="lic-divider"></div>
+    <div class="lic-hint">
+      Requires the license server to be running.<br/>
+      Server: <code id="server-url-hint">—</code>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div id="header">
+    <div id="header-left">
+      <div class="logo-box">📄</div>
+      <div>
+        <div class="header-title">PHOTO → PDF</div>
+        <div class="header-sub">BATCH CONVERTER</div>
+      </div>
+    </div>
+    <div id="header-right">
+      <span id="img-count-tag" class="tag tag-orange">0 IMAGES</span>
+      <span id="license-tag" class="tag tag-purple">LICENSED</span>
+      <span id="engine-tag" class="tag tag-gray">ENGINE…</span>
+    </div>
+  </div>
+  <div id="main">
+    <div id="left-panel">
+      <div id="dropzone">
+        <div class="dz-icon">🖼️</div>
+        <div class="dz-title">DROP IMAGES HERE</div>
+        <div class="dz-sub">or click to select files</div>
+        <div class="dz-btns">
+          <button class="dz-btn" id="btn-files">Select Files</button>
+          <button class="dz-btn" id="btn-folder">Select Folder</button>
+        </div>
+      </div>
+      <input type="file" id="inp-files" accept="image/*" multiple style="display:none" />
+      <input type="file" id="inp-folder" accept="image/*" multiple webkitdirectory style="display:none" />
+      <div id="sort-bar" style="display:none">
+        <span class="sort-label">SORT</span>
+        <div class="toggle-group" id="sort-group">
+          <button class="tg-btn small active" data-val="manual">MANUAL</button>
+          <button class="tg-btn small" data-val="az">A → Z</button>
+          <button class="tg-btn small" data-val="za">Z → A</button>
+        </div>
+        <button class="dz-btn" id="btn-clear" style="font-size:10px;padding:4px 10px">CLEAR ALL</button>
+      </div>
+      <div id="image-list"><div class="empty-msg" id="empty-msg">No images added yet</div></div>
+    </div>
+    <div id="right-panel">
+      <div id="settings-grid">
+        <div class="settings-card">
+          <div class="section-title"><div class="section-bar"></div><div class="section-name">Page Setup</div></div>
+          <div class="row"><div class="row-label">Page Size</div>
+            <div class="toggle-group" id="tg-pagesize">
+              <button class="tg-btn active" data-val="a4">A4</button>
+              <button class="tg-btn" data-val="a3">A3</button>
+              <button class="tg-btn" data-val="letter">Letter</button>
+              <button class="tg-btn" data-val="legal">Legal</button>
+            </div>
+          </div>
+          <div class="row"><div class="row-label">Orientation</div>
+            <div class="toggle-group" id="tg-orient">
+              <button class="tg-btn active" data-val="portrait">Portrait</button>
+              <button class="tg-btn" data-val="landscape">Landscape</button>
+            </div>
+          </div>
+          <div class="row"><div class="row-label">Margin</div>
+            <div class="toggle-group" id="tg-margin">
+              <button class="tg-btn active" data-val="5">Small</button>
+              <button class="tg-btn" data-val="12">Medium</button>
+              <button class="tg-btn" data-val="22">Large</button>
+              <button class="tg-btn" data-val="0">None</button>
+            </div>
+          </div>
+          <div class="row"><div class="row-label">Page Background</div>
+            <div class="color-row">
+              <div class="color-swatch"><input type="color" id="col-bg" value="#ffffff" /></div>
+              <span class="color-label" id="col-bg-label">#ffffff</span>
+            </div>
+          </div>
+        </div>
+        <div class="settings-card">
+          <div class="section-title"><div class="section-bar"></div><div class="section-name">Image Options</div></div>
+          <div class="row"><div class="row-label">Image Fit</div>
+            <div class="toggle-group" id="tg-fit">
+              <button class="tg-btn active" data-val="contain">Contain</button>
+              <button class="tg-btn" data-val="cover">Cover</button>
+              <button class="tg-btn" data-val="stretch">Stretch</button>
+            </div>
+          </div>
+          <div class="hint" id="fit-hint">Scales image to fit within the page, preserving aspect ratio.</div>
+          <div class="row" style="margin-top:10px"><div class="row-label">Image Quality</div>
+            <div class="slider-row">
+              <input type="range" id="sl-quality" min="50" max="100" value="92" />
+              <span class="slider-val" id="sl-quality-val">92%</span>
+            </div>
+          </div>
+        </div>
+        <div class="settings-card">
+          <div class="section-title"><div class="section-bar"></div><div class="section-name">Title / Caption</div></div>
+          <div class="row"><div class="row-label">Show Filename</div>
+            <div class="toggle-group" id="tg-showtitle">
+              <button class="tg-btn active" data-val="1">On</button>
+              <button class="tg-btn" data-val="0">Off</button>
+            </div>
+          </div>
+          <div id="title-options">
+            <div class="row"><div class="row-label">Position</div>
+              <div class="toggle-group" id="tg-titlepos">
+                <button class="tg-btn small active" data-val="bottom">Bottom</button>
+                <button class="tg-btn small" data-val="top">Top</button>
+                <button class="tg-btn small" data-val="overlay-bottom">Over↓</button>
+                <button class="tg-btn small" data-val="overlay-top">Over↑</button>
+              </div>
+            </div>
+            <div class="row"><div class="row-label">Font Size</div>
+              <div class="toggle-group" id="tg-fontsize" style="flex-wrap:wrap">
+                <button class="tg-btn small" data-val="8">8</button>
+                <button class="tg-btn small" data-val="10">10</button>
+                <button class="tg-btn small active" data-val="12">12</button>
+                <button class="tg-btn small" data-val="14">14</button>
+                <button class="tg-btn small" data-val="16">16</button>
+                <button class="tg-btn small" data-val="18">18</button>
+                <button class="tg-btn small" data-val="20">20</button>
+                <button class="tg-btn small" data-val="24">24</button>
+              </div>
+            </div>
+            <div class="row"><div class="row-label">Text Color</div>
+              <div class="color-row">
+                <div class="color-swatch"><input type="color" id="col-title" value="#222222" /></div>
+                <span class="color-label" id="col-title-label">#222222</span>
+              </div>
+            </div>
+            <div class="row"><div class="row-label">Background Bar</div>
+              <div style="display:flex;gap:10px;align-items:center">
+                <div class="toggle-group" id="tg-titlebg" style="flex:0 0 auto">
+                  <button class="tg-btn small active" data-val="1">On</button>
+                  <button class="tg-btn small" data-val="0">Off</button>
+                </div>
+                <div class="color-row" id="titlebg-color-row">
+                  <div class="color-swatch"><input type="color" id="col-titlebg" value="#f8f8f8" /></div>
+                  <span class="color-label" id="col-titlebg-label">#f8f8f8</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-card">
+          <div class="section-title"><div class="section-bar"></div><div class="section-name">Page Numbers</div></div>
+          <div class="row"><div class="row-label">Show Page Numbers</div>
+            <div class="toggle-group" id="tg-pagenum">
+              <button class="tg-btn active" data-val="1">On</button>
+              <button class="tg-btn" data-val="0">Off</button>
+            </div>
+          </div>
+          <div id="pagenum-options" class="row"><div class="row-label">Position</div>
+            <div class="toggle-group" id="tg-pagenumpos">
+              <button class="tg-btn" data-val="bottom-left">Left</button>
+              <button class="tg-btn" data-val="bottom-center">Center</button>
+              <button class="tg-btn active" data-val="bottom-right">Right</button>
+            </div>
+          </div>
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid #1a1a1a">
+            <div class="section-title" style="margin-bottom:10px"><div class="section-bar"></div><div class="section-name">Output</div></div>
+            <div class="row"><div class="row-label">PDF Filename</div>
+              <input type="text" id="inp-filename" value="photos" placeholder="photos" />
+            </div>
+            <div class="hint">Save as: <span id="filename-preview" style="color:#f97316">photos.pdf</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="gen-bar">
+        <div id="gen-status"><span id="status-text">Add images to get started</span></div>
+        <button id="gen-btn" disabled>GENERATE PDF ↓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONFIG — set this to your license server URL
+// ═══════════════════════════════════════════════════════
+const SERVER_URL = 'http://localhost:3000';
+// Production examples:
+//   const SERVER_URL = 'https://xyz.trycloudflare.com';
+//   const SERVER_URL = 'https://license.yourdomain.com';
+
+document.getElementById('server-url-hint').textContent = SERVER_URL;
+
+const LS_KEY = 'ptopdf_v1';
+
+// ═══════════════════════════════════════════════════════
+//  HARDWARE FINGERPRINT
+// ═══════════════════════════════════════════════════════
+async function buildFingerprint() {
+  const s = [];
+
+  // Canvas
+  try {
+    const c = document.createElement('canvas');
+    c.width = 200; c.height = 50;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#f97316'; ctx.fillRect(0, 0, 200, 50);
+    ctx.fillStyle = '#000'; ctx.font = '18px serif';
+    ctx.fillText('Photo→PDF🖼️', 10, 35);
+    ctx.strokeStyle = '#222';
+    ctx.beginPath(); ctx.arc(150, 25, 20, 0, Math.PI * 2); ctx.stroke();
+    s.push(c.toDataURL().slice(-40));
+  } catch {}
+
+  // WebGL
+  try {
+    const gl = document.createElement('canvas').getContext('webgl');
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    if (ext) {
+      s.push(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL));
+      s.push(gl.getParameter(ext.UNMASKED_VENDOR_WEBGL));
+    }
+  } catch {}
+
+  // Screen
+  s.push(`${screen.width}x${screen.height}x${screen.colorDepth}`);
+  s.push(`dpr:${devicePixelRatio}`);
+
+  // Locale
+  s.push(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  s.push(new Date().getTimezoneOffset());
+  s.push(navigator.language);
+  s.push(navigator.platform || '');
+  s.push(navigator.hardwareConcurrency || 0);
+  s.push(navigator.deviceMemory || 0);
+
+  // Audio fingerprint
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+    const osc = ac.createOscillator();
+    const an  = ac.createAnalyser();
+    osc.connect(an);
+    osc.frequency.value = 1000;
+    osc.start(0);
+    const buf = new Float32Array(an.frequencyBinCount);
+    an.getFloatFrequencyData(buf);
+    s.push(buf.slice(0, 8).join(','));
+    osc.stop(); ac.close();
+  } catch {}
+
+  // Font detection
+  const fonts = ['Arial','Courier New','Georgia','Times New Roman','Verdana','Comic Sans MS','Impact'];
+  const c2 = document.createElement('canvas');
+  const ctx2 = c2.getContext('2d');
+  ctx2.font = '72px monospace';
+  const bw = ctx2.measureText('mmmmm').width;
+  const present = fonts.filter(f => {
+    ctx2.font = `72px "${f}", monospace`;
+    return ctx2.measureText('mmmmm').width !== bw;
+  });
+  s.push(present.join(','));
+
+  const encoded = new TextEncoder().encode(s.join('|'));
+  const hash = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+// ═══════════════════════════════════════════════════════
+//  LICENSE GATE
+// ═══════════════════════════════════════════════════════
+let fp = null;
+
+async function initLicense() {
+  fp = await buildFingerprint();
+  document.getElementById('fp-display').textContent = fp.slice(0, 10) + '…' + fp.slice(-10);
+  document.getElementById('lic-btn').disabled = false;
+
+  const stored = getStored();
+  if (stored) {
+    try {
+      const r = await fetch(`${SERVER_URL}/api/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: stored.key, fingerprint: fp, token: stored.token }),
+      });
+      const d = await r.json();
+      if (d.ok) { unlockApp(stored.key); return; }
+    } catch {
+      // Server unreachable — grace mode
+      unlockApp(stored.key, true);
+      return;
+    }
+  }
+}
+
+function getStored() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch { return null; }
+}
+
+function setStored(key, token) {
+  localStorage.setItem(LS_KEY, JSON.stringify({ key, token, ts: Date.now() }));
+}
+
+function unlockApp(key, offline = false) {
+  document.getElementById('license-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  const mode = key.startsWith('DEV') ? 'DEVICE SLOT' : 'LICENSE';
+  document.getElementById('license-tag').textContent = mode + (offline ? ' (OFFLINE)' : '');
+  initApp();
+}
+
+document.getElementById('lic-input').addEventListener('input', function () {
+  this.value = this.value.toUpperCase();
+  this.classList.remove('error', 'success');
+  setMsg('', '');
+});
+
+document.getElementById('lic-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('lic-btn').click();
+});
+
+document.getElementById('lic-btn').addEventListener('click', async () => {
+  const key = document.getElementById('lic-input').value.trim().toUpperCase();
+  if (!key) { setMsg('Please enter your license key.', 'error'); return; }
+
+  setBtnLoading(true);
+  setMsg('', '');
+
+  try {
+    const r = await fetch(`${SERVER_URL}/api/activate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, fingerprint: fp }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      setStored(key, d.token);
+      document.getElementById('lic-input').classList.add('success');
+      setMsg(d.firstActivation
+        ? '✓ Activated! This key is now permanently bound to this machine.'
+        : '✓ Welcome back!', 'success');
+      setTimeout(() => unlockApp(key), 1000);
+    } else {
+      document.getElementById('lic-input').classList.add('error');
+      setMsg('✗ ' + (d.error || 'Activation failed.'), 'error');
+    }
+  } catch {
+    setMsg('✗ Cannot reach license server. Make sure it is running at ' + SERVER_URL, 'error');
+  }
+  setBtnLoading(false);
+});
+
+function setMsg(text, type) {
+  const el = document.getElementById('lic-msg');
+  el.textContent = text;
+  el.className = 'lic-msg' + (type ? ' ' + type : '');
+}
+
+function setBtnLoading(on) {
+  document.getElementById('lic-btn').disabled = on;
+  document.getElementById('lic-btn-text').textContent = on ? 'VERIFYING…' : 'ACTIVATE';
+  document.getElementById('lic-spinner').style.display = on ? 'block' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════
+//  MAIN APP
+// ═══════════════════════════════════════════════════════
+const state = {
+  images: [], sortOrder: 'manual', dragSrcIdx: null,
+  settings: {
+    pageSize: 'a4', orientation: 'portrait', margin: 5, bgColor: '#ffffff',
+    imageFit: 'contain', quality: 0.92, showTitle: true, titlePos: 'bottom',
+    titleFontSize: 12, titleColor: '#222222', showTitleBg: true, titleBgColor: '#f8f8f8',
+    showPageNum: true, pageNumPos: 'bottom-right', filename: 'photos',
+  },
+};
+
+function initApp() {
+  if (typeof window.jspdf !== 'undefined') {
+    document.getElementById('engine-tag').textContent = 'ENGINE READY';
+    document.getElementById('engine-tag').className = 'tag tag-green';
+  } else {
+    setTimeout(() => {
+      if (typeof window.jspdf !== 'undefined') {
+        document.getElementById('engine-tag').textContent = 'ENGINE READY';
+        document.getElementById('engine-tag').className = 'tag tag-green';
+      } else {
+        document.getElementById('engine-tag').textContent = 'ENGINE ERROR';
+      }
+      updateGenBtn();
+    }, 3000);
+  }
+  bindUI();
+  updateGenBtn();
+}
+
+function escH(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function getSorted() {
+  const a = [...state.images];
+  if (state.sortOrder === 'az') a.sort((x, y) => x.name.localeCompare(y.name));
+  if (state.sortOrder === 'za') a.sort((x, y) => y.name.localeCompare(x.name));
+  return a;
+}
+
+function loadFiles(files) {
+  Array.from(files).filter(f => f.type.startsWith('image/')).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      state.images.push({ id: Date.now() + '-' + Math.random().toString(36).slice(2), name: file.name.replace(/\.[^.]+$/, ''), dataUrl: e.target.result, size: (file.size / 1024).toFixed(0) + 'KB' });
+      renderList();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderList() {
+  const sorted = getSorted();
+  const list = document.getElementById('image-list');
+  list.querySelectorAll('.img-item').forEach(e => e.remove());
+  document.getElementById('empty-msg').style.display = sorted.length ? 'none' : 'block';
+  document.getElementById('sort-bar').style.display = sorted.length ? 'flex' : 'none';
+  document.getElementById('img-count-tag').textContent = sorted.length + ' IMAGE' + (sorted.length !== 1 ? 'S' : '');
+
+  sorted.forEach((img, idx) => {
+    const el = document.createElement('div');
+    el.className = 'img-item';
+    el.dataset.id = img.id;
+    el.draggable = state.sortOrder === 'manual';
+    if (state.sortOrder === 'manual') el.style.cursor = 'grab';
+    el.innerHTML = `
+      <div class="img-thumb"><img src="${img.dataUrl}" alt="" /></div>
+      <div class="img-info">
+        <div class="img-name" title="${escH(img.name)}">${escH(img.name)}</div>
+        <div class="img-meta">#${String(idx+1).padStart(2,'0')} · ${img.size}</div>
+      </div>
+      ${state.sortOrder === 'manual' ? `<div class="img-arrows"><button class="arrow-btn" ${idx === 0 ? 'disabled' : ''}>▲</button><button class="arrow-btn" ${idx === sorted.length - 1 ? 'disabled' : ''}>▼</button></div>` : ''}
+      <button class="remove-btn">×</button>`;
+    if (state.sortOrder === 'manual') {
+      const [up, dn] = el.querySelectorAll('.arrow-btn');
+      up.onclick = e => { e.stopPropagation(); moveImg(img.id, -1); };
+      dn.onclick = e => { e.stopPropagation(); moveImg(img.id, 1); };
+      el.addEventListener('dragstart', () => { state.dragSrcIdx = idx; el.classList.add('dragging'); });
+      el.addEventListener('dragend', () => el.classList.remove('dragging'));
+      el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag-over'); });
+      el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+      el.addEventListener('drop', e => {
+        e.preventDefault(); el.classList.remove('drag-over');
+        if (state.dragSrcIdx === null || state.dragSrcIdx === idx) return;
+        const s2 = getSorted();
+        const fi = state.images.findIndex(x => x.id === s2[state.dragSrcIdx].id);
+        const ti = state.images.findIndex(x => x.id === s2[idx].id);
+        [state.images[fi], state.images[ti]] = [state.images[ti], state.images[fi]];
+        state.dragSrcIdx = null; renderList();
+      });
+    }
+    el.querySelector('.remove-btn').onclick = e => { e.stopPropagation(); state.images = state.images.filter(x => x.id !== img.id); renderList(); };
+    list.appendChild(el);
+  });
+  updateGenBtn();
+}
+
+function moveImg(id, dir) {
+  const idx = state.images.findIndex(x => x.id === id);
+  const ni = idx + dir;
+  if (ni < 0 || ni >= state.images.length) return;
+  [state.images[idx], state.images[ni]] = [state.images[ni], state.images[idx]];
+  renderList();
+}
+
+function tg(id, cb) {
+  document.getElementById(id).querySelectorAll('.tg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById(id).querySelectorAll('.tg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active'); cb(btn.dataset.val);
+    });
+  });
+}
+
+function bindUI() {
+  document.getElementById('btn-files').onclick = e => { e.stopPropagation(); document.getElementById('inp-files').click(); };
+  document.getElementById('btn-folder').onclick = e => { e.stopPropagation(); document.getElementById('inp-folder').click(); };
+  document.getElementById('inp-files').onchange = e => loadFiles(e.target.files);
+  document.getElementById('inp-folder').onchange = e => loadFiles(e.target.files);
+  const dz = document.getElementById('dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); loadFiles(e.dataTransfer.files); });
+  dz.addEventListener('click', () => document.getElementById('inp-files').click());
+  document.getElementById('btn-clear').onclick = () => { state.images = []; renderList(); };
+  document.getElementById('sort-group').querySelectorAll('.tg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('sort-group').querySelectorAll('.tg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active'); state.sortOrder = btn.dataset.val; renderList();
+    });
+  });
+  tg('tg-pagesize', v => state.settings.pageSize = v);
+  tg('tg-orient',   v => state.settings.orientation = v);
+  tg('tg-margin',   v => state.settings.margin = Number(v));
+  tg('tg-fit', v => {
+    state.settings.imageFit = v;
+    document.getElementById('fit-hint').textContent = { contain: 'Scales image to fit within the page, preserving aspect ratio.', cover: 'Scales image to fill the page, may crop edges.', stretch: 'Stretches image to fill the full page.' }[v];
+  });
+  tg('tg-showtitle', v => { state.settings.showTitle = v === '1'; document.getElementById('title-options').style.display = v === '1' ? 'block' : 'none'; });
+  tg('tg-titlepos',  v => state.settings.titlePos = v);
+  tg('tg-fontsize',  v => state.settings.titleFontSize = Number(v));
+  tg('tg-titlebg',   v => { state.settings.showTitleBg = v === '1'; document.getElementById('titlebg-color-row').style.display = v === '1' ? 'flex' : 'none'; });
+  tg('tg-pagenum',   v => { state.settings.showPageNum = v === '1'; document.getElementById('pagenum-options').style.display = v === '1' ? 'block' : 'none'; });
+  tg('tg-pagenumpos',v => state.settings.pageNumPos = v);
+  document.getElementById('sl-quality').addEventListener('input', function () {
+    state.settings.quality = Number(this.value) / 100;
+    document.getElementById('sl-quality-val').textContent = this.value + '%';
+  });
+  [['col-bg','col-bg-label','bgColor'],['col-title','col-title-label','titleColor'],['col-titlebg','col-titlebg-label','titleBgColor']].forEach(([inp,lbl,key]) => {
+    document.getElementById(inp).addEventListener('input', function () { state.settings[key] = this.value; document.getElementById(lbl).textContent = this.value; });
+  });
+  document.getElementById('inp-filename').addEventListener('input', function () {
+    state.settings.filename = this.value.trim() || 'photos';
+    document.getElementById('filename-preview').textContent = (this.value.trim() || 'photos') + '.pdf';
+  });
+  document.getElementById('gen-btn').addEventListener('click', generatePDF);
+}
+
+function updateGenBtn() {
+  const btn = document.getElementById('gen-btn');
+  const st  = document.getElementById('status-text');
+  const ready = typeof window.jspdf !== 'undefined';
+  const n = state.images.length;
+  if (!ready) { btn.disabled = true; st.innerHTML = '<span>Loading engine…</span>'; return; }
+  if (!n)     { btn.disabled = true; st.innerHTML = '<span>Add images to get started</span>'; return; }
+  btn.disabled = false;
+  const s = state.settings;
+  st.innerHTML = `Ready · <span class="hi">${n} page${n !== 1 ? 's' : ''}</span> · <span class="lo">${s.pageSize.toUpperCase()} ${s.orientation}</span>`;
+}
+
+function hexRgb(hex) { const h = hex.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+
+async function generatePDF() {
+  if (typeof window.jspdf === 'undefined' || !state.images.length) return;
+  const sorted = getSorted();
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true; btn.textContent = 'GENERATING…';
+  document.getElementById('gen-status').innerHTML = `<div><div class="progress-top"><span class="progress-label" id="prog-label">Starting…</span><span class="progress-pct" id="prog-pct">0%</span></div><div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div></div>`;
+
+  const s = state.settings;
+  const { jsPDF } = window.jspdf;
+  try {
+    const doc = new jsPDF({ orientation: s.orientation, unit: 'mm', format: s.pageSize, compress: true });
+    const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+    const mg = s.margin, tPtMm = s.titleFontSize * 0.3528, tBarH = tPtMm + 5;
+
+    for (let i = 0; i < sorted.length; i++) {
+      const img = sorted[i];
+      if (i > 0) doc.addPage();
+      document.getElementById('prog-label').textContent = `Processing ${i+1}/${sorted.length}: ${img.name}`;
+      document.getElementById('prog-pct').textContent = Math.round(i / sorted.length * 100) + '%';
+      document.getElementById('prog-fill').style.width = Math.round(i / sorted.length * 100) + '%';
+
+      const [br,bg2,bb] = hexRgb(s.bgColor);
+      doc.setFillColor(br,bg2,bb); doc.rect(0,0,pw,ph,'F');
+
+      let cY = mg, cH = ph - 2*mg;
+      const isOv = s.titlePos.startsWith('overlay');
+      if (s.showTitle && !isOv) { if (s.titlePos==='top') { cY = mg+tBarH+2; cH -= tBarH+2; } else if (s.titlePos==='bottom') cH -= tBarH+2; }
+      const aW = pw-2*mg, aH = cH;
+      const el = new Image();
+      await new Promise(r => { el.onload = r; el.src = img.dataUrl; });
+      const iw = el.naturalWidth, ih = el.naturalHeight;
+      let dx=mg, dy=cY, dw=aW, dh=aH;
+      if (s.imageFit==='contain') { const r=Math.min(aW/iw,aH/ih); dw=iw*r; dh=ih*r; dx=mg+(aW-dw)/2; dy=cY+(aH-dh)/2; }
+      else if (s.imageFit==='cover') { const r=Math.max(aW/iw,aH/ih); dw=iw*r; dh=ih*r; dx=mg+(aW-dw)/2; dy=cY+(aH-dh)/2; }
+      doc.addImage(img.dataUrl, img.dataUrl.includes('image/png')?'PNG':'JPEG', dx, dy, dw, dh, undefined, 'FAST');
+
+      if (s.showTitle) {
+        doc.setFontSize(s.titleFontSize);
+        const [tr,tg2,tb] = hexRgb(s.titleColor);
+        doc.setTextColor(tr,tg2,tb);
+        const tW = doc.getTextWidth(img.name);
+        let tx, ty, bgX, bgY, bgW;
+        if (isOv) {
+          const il = s.imageFit==='contain'?dx:mg, ir = s.imageFit==='contain'?dx+dw:mg+aW;
+          bgW = ir-il; bgX = il;
+          if (s.titlePos==='overlay-top') { bgY = s.imageFit==='contain'?dy:cY; ty = bgY+tPtMm+1; }
+          else { const ib = s.imageFit==='contain'?dy+dh:cY+cH; bgY = ib-tBarH; ty = ib-2; }
+          tx = bgX+bgW/2-tW/2;
+        } else { bgX=0; bgW=pw; if (s.titlePos==='top') { bgY=mg; ty=mg+tPtMm+1; } else { bgY=ph-mg-tBarH; ty=ph-mg-2; } tx=pw/2-tW/2; }
+        if (s.showTitleBg) { const [a,b,c]=hexRgb(s.titleBgColor); doc.setFillColor(a,b,c); doc.rect(bgX,bgY,bgW,tBarH,'F'); doc.setTextColor(tr,tg2,tb); }
+        doc.text(img.name, tx, ty);
+      }
+      if (s.showPageNum) {
+        doc.setFontSize(8); doc.setTextColor(150,150,150);
+        const pn = `${i+1} / ${sorted.length}`, pnW = doc.getTextWidth(pn);
+        const pnX = s.pageNumPos==='bottom-right'?pw-mg-pnW:s.pageNumPos==='bottom-center'?pw/2-pnW/2:mg;
+        doc.text(pn, pnX, ph-2.5);
+      }
+      await new Promise(r => setTimeout(r, 5));
+    }
+    document.getElementById('prog-fill').style.width = '100%';
+    document.getElementById('prog-pct').textContent = '100%';
+    await new Promise(r => setTimeout(r, 100));
+    doc.save(`${s.filename||'photos'}.pdf`);
+  } catch (err) { alert('Error: ' + err.message); }
+
+  document.getElementById('gen-status').innerHTML = '<span id="status-text"></span>';
+  btn.textContent = 'GENERATE PDF ↓';
+  updateGenBtn();
+}
+
+initLicense();
+</script>
+</body>
+</html>

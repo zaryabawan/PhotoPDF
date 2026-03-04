@@ -1,0 +1,14 @@
+{
+  "name": "photopdf-license-server",
+  "version": "1.0.0",
+  "description": "License validation server for Photo→PDF Converter",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["license", "activation", "nodejs"],
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true
+}

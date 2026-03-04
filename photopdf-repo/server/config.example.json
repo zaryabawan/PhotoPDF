@@ -1,0 +1,6 @@
+{
+  "port": 3000,
+  "adminSecret": "REPLACE_WITH_YOUR_SECRET_FROM_init.js",
+  "allowedOrigin": "*",
+  "_note": "Copy this to config.json and fill in the values. Run: node scripts/init.js to auto-generate."
+}

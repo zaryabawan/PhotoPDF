@@ -1,0 +1,30 @@
+# ── Sensitive files — NEVER commit these ──────────────────
+server/config.json
+server/license_db.json
+server/LICENSE_KEYS.txt
+server/license_db_backup_*.json
+server/logs/
+
+# ── Node ──────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+
+# ── Runtime logs ──────────────────────────────────────────
+*.log
+server/server.log
+server/tunnel.log
+
+# ── OS files ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor files ──────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+
+# ── Temp files ────────────────────────────────────────────
+*.tmp
+*.temp
