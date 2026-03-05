@@ -9,6 +9,7 @@ A professional batch photo-to-PDF converter with a hardware-locked license syste
 - **Server:** Zero-dependency Node.js — no npm install needed
 - **Licensing:** Keys bound permanently to hardware fingerprints
 - **Tunnel:** Cloudflare Tunnel for public HTTPS with no admin/firewall access needed
+
 ![Dashboard](assets/images/graphic3_dashboard.png)
 
 ![Workflow](assets/images/graphic4_workflow.png)
@@ -255,9 +256,11 @@ cp license_db.json license_db_backup_$(date +%Y%m%d).json
 ## App Features
 
 | Feature | Details |
+
+![Features](assets/images/graphic2_features.png)
+
 |---------|---------|
 | Page sizes | A4, A3, Letter, Legal |
-![Features](assets/images/graphic2_features.png)
 | Orientation | Portrait, Landscape |
 | Image fit | Contain, Cover, Stretch |
 | Margins | None, Small, Medium, Large |
@@ -268,6 +271,3 @@ cp license_db.json license_db_backup_$(date +%Y%m%d).json
 | Image quality | 50–100% slider |
 | Output | Custom PDF filename |
 | Processing | 100% client-side — images never leave the browser |
-
-
-[def]: assets/images/graphic3_dashboard.png
