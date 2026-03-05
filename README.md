@@ -1,5 +1,4 @@
 # 📄 Photo → PDF Converter
-![PhotoPDF Banner](assets/images/graphic1_hero.png)
 <p align="center">
   <img src="assets/images/graphic1_hero.png" width="900">
 </p>
