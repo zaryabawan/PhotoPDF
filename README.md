@@ -1,4 +1,8 @@
 # 📄 Photo → PDF Converter
+![PhotoPDF Banner](assets/images/graphic1_hero.png)
+<p align="center">
+  <img src="assets/images/graphic1_hero.png" width="900">
+</p>
 
 A professional batch photo-to-PDF converter with a hardware-locked license system.
 
@@ -6,7 +10,9 @@ A professional batch photo-to-PDF converter with a hardware-locked license syste
 - **Server:** Zero-dependency Node.js — no npm install needed
 - **Licensing:** Keys bound permanently to hardware fingerprints
 - **Tunnel:** Cloudflare Tunnel for public HTTPS with no admin/firewall access needed
+![Dashboard](assets/images/graphic3_dashboard.png)
 
+![Workflow](assets/images/graphic4_workflow.png)
 ---
 
 ## Repository Structure
@@ -252,6 +258,7 @@ cp license_db.json license_db_backup_$(date +%Y%m%d).json
 | Feature | Details |
 |---------|---------|
 | Page sizes | A4, A3, Letter, Legal |
+![Features](assets/images/graphic2_features.png)
 | Orientation | Portrait, Landscape |
 | Image fit | Contain, Cover, Stretch |
 | Margins | None, Small, Medium, Large |
@@ -262,3 +269,6 @@ cp license_db.json license_db_backup_$(date +%Y%m%d).json
 | Image quality | 50–100% slider |
 | Output | Custom PDF filename |
 | Processing | 100% client-side — images never leave the browser |
+
+
+[def]: assets/images/graphic3_dashboard.png
