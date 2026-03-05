@@ -254,11 +254,8 @@ cp license_db.json license_db_backup_$(date +%Y%m%d).json
 ---
 
 ## App Features
-
-| Feature | Details |
-
 ![Features](assets/images/graphic2_features.png)
-
+| Feature | Details |
 |---------|---------|
 | Page sizes | A4, A3, Letter, Legal |
 | Orientation | Portrait, Landscape |
